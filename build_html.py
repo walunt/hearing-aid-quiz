@@ -475,9 +475,9 @@ def md_inline(text):
                     topics = tlist; break
             btn = ""
             if topics:
-                btn = ('<button class="lec-practice" onclick="practiceTopics('
-                       + json.dumps(topics, ensure_ascii=False)
-                       + ')">🏋 练本节相关的题 →</button>')
+                btn = ('<button class="lec-practice" onclick=\'practiceTopics('
+                   + json.dumps(topics, ensure_ascii=False)
+                   + ')\'>🏋 练本节相关的题 →</button>')
             out.append('<div class="lec-sec-head"><h3>'+esc(title_txt)+'</h3>'+btn+'</div>'); i += 1; continue
         if s.startswith("#"):
             out.append("<h2>"+esc(s[1:].strip())+"</h2>"); i += 1; continue
