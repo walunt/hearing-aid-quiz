@@ -437,6 +437,73 @@ MEMO = {"year": [_min(q) for q in BANK if _is_year(q)],
         "latin": [_min(q) for q in BANK if _is_latin(q)]}
 memo_json = json.dumps(MEMO, ensure_ascii=False)
 
+# ============================================================================
+# 9) 网课要点：读取 5 课 md + 学习汇总，转成内联 HTML
+# ============================================================================
+import html as _html
+LECT_SRC = os.path.join(SRC, "钉钉直播回放")   # 笔记目录（与 mp4 同目录）
+LECT_FILES = [
+    ("l1", "第①课", "中耳传声能力评估", "周梦琪（戴蒙特集团）", "约 1h11m",  "钉钉直播回放_周梦琪戴孟特_中耳传声能力评估.md"),
+    ("l2", "第②课", "三级助听器模块1",   "戴瑞邦（WSA听力集团）", "约 2h10m", "钉钉直播回放_戴瑞邦_三级助听器模块1.md"),
+    ("l3", "第③课", "声导抗测试",        "申屠思灵",             "约 1h50m", "钉钉直播回放_申屠思灵_声导抗测试.md"),
+    ("l4", "第④课", "言语测听与纯音测听", "申屠思灵",            "约 2h",    "钉钉直播回放_申屠思灵_言语测听与纯音测听.md"),
+    ("l5", "第⑤课", "听力助听器",         "董燕华（浙江中医药大学）", "约 2h42m", "钉钉直播回放_董燕华_听力助听器.md"),
+    ("sum", "汇总",  "学习汇总（系统化主线）", "AI 整合 5 课",      "测听→声导抗→真耳分析→验配→康复", "学习汇总.md"),
+]
+
+def md_inline(text):
+    """极简 Markdown -> HTML：支持 标题/表格/列表/引用/粗体/分隔线/段落。"""
+    lines = text.split("\n")
+    out, i = [], 0
+    esc = lambda s: _html.escape(s)
+    bold = lambda s: re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)
+    while i < len(lines):
+        ln = lines[i]
+        s = ln.strip()
+        if not s:
+            i += 1; continue
+        if s.startswith("---"):
+            out.append("<hr>"); i += 1; continue
+        if s.startswith("###"):
+            out.append("<h4>"+esc(s[3:].strip())+"</h4>"); i += 1; continue
+        if s.startswith("##"):
+            out.append("<h3>"+esc(s[2:].strip())+"</h3>"); i += 1; continue
+        if s.startswith("#"):
+            out.append("<h2>"+esc(s[1:].strip())+"</h2>"); i += 1; continue
+        if s.startswith(">"):
+            out.append("<blockquote>"+bold(esc(s[1:].strip()))+"</blockquote>"); i += 1; continue
+        if s.startswith("|"):   # 表格
+            rows = []
+            while i < len(lines) and lines[i].strip().startswith("|"):
+                cells = [c.strip() for c in lines[i].strip().strip("|").split("|")]
+                rows.append(cells); i += 1
+            # rows[0]=表头 rows[1]=分隔行(--|-) 跳过
+            if len(rows) >= 1:
+                out.append('<table class="lec-tbl">')
+                out.append("<thead><tr>"+"".join("<th>"+bold(esc(c))+"</th>" for c in rows[0])+"</tr></thead>")
+                for r in rows[2:]:
+                    out.append("<tr>"+"".join("<td>"+bold(esc(c))+"</td>" for c in r)+"</tr>")
+                out.append("</table>")
+            continue
+        if s.startswith("-") or s.startswith("*"):   # 无序列表
+            items = []
+            while i < len(lines) and lines[i].strip().startswith(("-","*")):
+                items.append(bold(esc(lines[i].strip()[1:].strip()))); i += 1
+            out.append("<ul>"+"".join("<li>"+it+"</li>" for it in items)+"</ul>"); continue
+        # 普通段落
+        out.append("<p>"+bold(esc(s))+"</p>"); i += 1
+    return "\n".join(out)
+
+LECTURES = []
+for lid, no, title, teacher, dur, fn in LECT_FILES:
+    p = os.path.join(LECT_SRC, fn)
+    body = "（笔记文件缺失：" + fn + "）"
+    if os.path.exists(p):
+        body = md_inline(open(p, encoding="utf-8").read())
+    LECTURES.append({"id": lid, "no": no, "title": title, "teacher": teacher,
+                     "dur": dur, "file": fn, "body": body})
+lectures_json = json.dumps(LECTURES, ensure_ascii=False)
+
 TPL = os.path.join(BASE, "html_template.txt")
 with open(TPL, "r", encoding="utf-8") as f:
     tpl = f.read()
@@ -445,10 +512,12 @@ html = (tpl
     .replace("__BANK_DATA__", bank_json)
     .replace("__SIMILAR_DATA__", similar_json)
     .replace("__MEMO__", memo_json)
+    .replace("__LECTURES__", lectures_json)
     .replace("__TOTAL__", str(len(BANK)))
     .replace("__SINGLE_COUNT__", str(sum(1 for q in BANK if not q["multi"])))
     .replace("__MULTI_COUNT__", str(sum(1 for q in BANK if q["multi"])))
     .replace("__SIMILAR_COUNT__", str(len(similar_data))))
+
 
 with open(OUTPUT, "w", encoding="utf-8") as f:
     f.write(html)
