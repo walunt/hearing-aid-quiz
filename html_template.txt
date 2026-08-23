@@ -299,7 +299,7 @@ var TOTAL = __TOTAL__;
 var SINGLE_COUNT = __SINGLE_COUNT__;
 var MULTI_COUNT = __MULTI_COUNT__;
 var SIMILAR_COUNT = __SIMILAR_COUNT__;
-var VERSION = 'v1.24';
+var VERSION = 'v1.24.1';
 var app = document.getElementById('app');
 
 // ========== localStorage ==========
