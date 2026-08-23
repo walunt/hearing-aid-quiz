@@ -174,7 +174,8 @@ input[type=range]{ width:100%; accent-color:var(--accent); }
 .option:hover { border-color:var(--accent); }
 .option .letter { width:30px; height:30px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:var(--border); margin-right:12px; font-weight:700; font-size:14px; flex-shrink:0; transition:all .2s; }
 .option.multi-tog.selected { border-color:var(--accent); background:rgba(14,165,233,.08); }
-.option.multi-tog.selected .letter { background:var(--accent); color:#fff; }
+.option.selected { border-color:var(--accent); background:rgba(14,165,233,.10); }
+.option.selected .letter { background:var(--accent); color:#fff; }
 .option.correct { border-color:var(--correct); background:rgba(16,185,129,.1); }
 .option.correct .letter { background:var(--correct); color:#fff; }
 .option.wrong { border-color:var(--wrong); background:rgba(239,68,68,.1); }
@@ -293,7 +294,7 @@ var TOTAL = 363;
 var SINGLE_COUNT = 221;
 var MULTI_COUNT = 142;
 var SIMILAR_COUNT = 13;
-var VERSION = 'v1.20';
+var VERSION = 'v1.21';
 var app = document.getElementById('app');
 
 // ========== localStorage ==========
@@ -781,14 +782,20 @@ function examPick(k){
 function examNext(){ if(EXAM.idx<EXAM.qlist.length-1) EXAM.idx++; render(); }
 function examPrev(){ if(EXAM.idx>0) EXAM.idx--; render(); }
 function submitExam(auto){
+  if(!auto){
+    if(!confirm('确定要交卷吗？共 '+EXAM.qlist.length+' 题。交卷后将查看成绩与错题回顾，且错题会记入答题统计。')) return;
+  }
   if(EXAM.timer) clearInterval(EXAM.timer);
   EXAM.finished = true;
   var wrong=getWrong();
+  var stats=LS.get('stats',{total:0,correct:0});
   for(var i=0;i<EXAM.qlist.length;i++){
     var q=BANK[EXAM.qlist[i]], ans=EXAM.answers[EXAM.qlist[i]]||[];
     var ok = ans.length>0 && ans.slice().sort().join('')===q.a.split('').sort().join('');
+    stats.total++; if(ok) stats.correct++;   // 考试题计入答题统计
     if(!ok && wrong.indexOf(EXAM.qlist[i])<0) wrong.push(EXAM.qlist[i]);
   }
+  LS.set('stats', stats);
   LS.set('wrong', wrong);
   render();
 }
@@ -817,8 +824,17 @@ function examReport(){
     h += '<div class="card" style="margin-top:16px"><h2>❌ 本次错题回顾</h2>';
     for(var w=0;w<wrongList.length;w++){
       var q=BANK[wrongList[w]];
-      h += '<div class="sim-item"><div class="g-title">'+q.s+'</div>'+
-        '<div class="sim-ans">正确答案：<b>'+q.a+'</b></div></div>';
+      h += '<div class="sim-item"><div class="g-title">'+q.s+'</div><div class="options" style="margin:8px 0">';
+      var userAns = EXAM.answers[wrongList[w]]||[];
+      for(var o=0;o<q.o.length;o++){
+        var kk=q.o[o].k;
+        var isRight = q.a.indexOf(kk)>=0;
+        var isUser = userAns.indexOf(kk)>=0;
+        var cls = isRight ? 'correct' : (isUser ? 'wrong' : 'dim');
+        var mark = isRight ? ' ✓正确答案' : (isUser ? ' ✗你的选择' : '');
+        h += '<div class="option '+cls+'" style="cursor:default"><span class="letter">'+kk+'</span><span>'+q.o[o].t+mark+'</span></div>';
+      }
+      h += '</div><div class="sim-ans">正确答案：<b>'+q.a+'</b>'+(userAns.length?' · 你的选择：'+userAns.sort().join('') : ' · 未作答')+'</div></div>';
     }
     h += '</div>';
   }
