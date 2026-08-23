@@ -5,6 +5,7 @@
 """
 import re, json, os, zipfile
 from xml.etree import ElementTree as ET
+from overrides import Q_OVERRIDE   # 逐题解析覆盖（按题号精确指定考察点与解析）
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 SRC  = os.path.dirname(BASE)                      # ...\验配师三级备考
@@ -349,7 +350,12 @@ def match_knowledge(stem):
 
 def explain(q):
     ans_letters = list(q["a"])
-    key = match_knowledge(q["s"])
+    # 逐题覆盖优先：Q_OVERRIDE 按题号精确指定（考察点, 解析），规避关键词匹配错配
+    if q["n"] in Q_OVERRIDE:
+        key, body = Q_OVERRIDE[q["n"]]
+    else:
+        key = match_knowledge(q["s"])
+        body = KNOWLEDGE[key]["exp"] if key else ""
     if q["multi"]:
         correct_texts = [x["t"] for x in q["o"] if x["k"] in ans_letters]
         head = "正确答案：" + "、".join(f"{x['k']}){x['t']}" for x in q["o"] if x["k"] in ans_letters)
@@ -360,9 +366,6 @@ def explain(q):
         ans = next((x for x in q["o"] if x["k"] == q["a"]), None)
         head = f"正确答案：{q['a']}）{ans['t'] if ans else ''}"
         note = ""
-    body = ""
-    if key:
-        body = KNOWLEDGE[key]["exp"]
     return {"title": f"考察点：{key if key else '综合'}", "text": head + "\n\n" + body + ("" if note=="" else ("\n\n" + note))}
 
 for q in BANK:
