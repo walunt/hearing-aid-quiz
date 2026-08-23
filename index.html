@@ -293,7 +293,7 @@ var TOTAL = 363;
 var SINGLE_COUNT = 221;
 var MULTI_COUNT = 142;
 var SIMILAR_COUNT = 13;
-var VERSION = 'v1.19';
+var VERSION = 'v1.20';
 var app = document.getElementById('app');
 
 // ========== localStorage ==========
@@ -332,7 +332,7 @@ function render(){
 
 function topbar(active){
   var tabs = [
-    ['首页','home'],['刷题','quiz'],['错题本','wrong'],['分类练习','topic'],['相似题对比','similar'],['速记手册','cheat'],['网课要点','lecture'],['设置','setting']
+    ['首页','home'],['刷题','quiz'],['错题本','wrong'],['分类练习','topic'],['相似题对比','similar'],['速记手册','cheat'],['网课要点','lecture']
   ];
   var html = '<div class="topbar"><span class="brand">验配师·复习系统</span><span class="sp"></span>';
   for(var i=0;i<tabs.length;i++){
@@ -715,8 +715,8 @@ function toggleLec(id){
 // ========== 模拟考试 ==========
 var EXAM = { single:30, multi:10, minutes:60, timer:null, deadline:0, qlist:[], idx:0, answers:{}, finished:false };
 function renderExam(){
-  if(EXAM.finished){ app.innerHTML = topbar('exam') + examReport(); return; }
-  if(EXAM.qlist.length){ app.innerHTML = topbar('exam') + examQuiz(); examTick(); return; }
+  if(EXAM.finished){ app.innerHTML = examReport(); return; }
+  if(EXAM.qlist.length){ app.innerHTML = examQuiz(); examTick(); return; }
   // 配置页：拖拽滑块
   var h = topbar('exam');
   h += '<div class="card"><h2>📝 模拟考试配置</h2>'+
@@ -832,19 +832,19 @@ function renderSetting(){
   var h = topbar('setting');
   h += '<div class="card"><h2>⚙ 系统数据设置</h2><p style="color:var(--muted)">管理学习数据：重置进度、跨设备迁移、弱项间隔重练。</p></div>';
   // 弱项重练
-  h += '<div class="card"><div class="set-item"><div><b>④ 弱项间隔重练</b></div>'+
+  h += '<div class="card"><div class="set-item"><div><b>弱项间隔重练</b></div>'+
     '<div class="desc">开启后，进入刷题时若距上次已超过设定天数，会自动把「错题本」题目优先塞进练习队列，确保旧错题周期性复现、真正记住。</div>'+
     '<label class="switch"><input type="checkbox" '+(weak.on?'checked':'')+' onchange="setWeakOn(this.checked)"> 启用弱项间隔重练</label>'+
     '<div class="range-row" style="margin-top:6px"><label>间隔天数 <b id="rv-d">'+weak.days+'</b></label>'+
       '<input type="range" min="1" max="30" step="1" value="'+weak.days+'" oninput="weakSetDays(+this.value)"></div></div></div>';
   // 导入导出
-  h += '<div class="card"><div class="set-item"><div><b>⑤ 进度导入 / 导出</b></div>'+
+  h += '<div class="card"><div class="set-item"><div><b>进度导入 / 导出</b></div>'+
     '<div class="desc">导出当前全部学习数据（答题统计、错题本、进度、权重、弱项设置）为 JSON 文件；换设备后导入即可恢复，手机与电脑进度互通。</div>'+
     '<div class="spaced"><button class="btn btn-primary btn-mini" onclick="exportData()">⬇ 导出进度 JSON</button>'+
     '<button class="btn btn-ghost btn-mini" onclick="document.getElementById(\'imp\').click()">⬆ 导入进度 JSON</button>'+
     '<input type="file" id="imp" class="hidden-file" accept="application/json" onchange="importData(this)"></div></div></div>';
   // 重置
-  h += '<div class="card"><div class="set-item"><div><b>① 重置所有学习数据</b></div>'+
+  h += '<div class="card"><div class="set-item"><div><b>重置所有学习数据</b></div>'+
     '<div class="desc">清空本题库全部进度：答题统计、错题本、已完成轮数、权重、弱项设置。此操作不可恢复。</div>'+
     '<button class="btn btn-danger btn-mini" onclick="resetAll()">清空所有数据</button></div></div>';
   h += '<div class="footer">本系统由核桃制作 · '+VERSION+'</div>';
@@ -919,11 +919,11 @@ document.addEventListener('keydown',function(e){
 });
 function toggleTheme(){ S.theme=S.theme==='light'?'dark':'light'; LS.set('theme',S.theme); render(); }
 function resetAll(){
-  if(confirm('确定要清空所有学习数据吗？')){
-    var keys=[]; for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k.indexOf('ypf_')===0) keys.push(k); }
-    for(var j=0;j<keys.length;j++) localStorage.removeItem(keys[j]);
-    S.page='home'; render();
-  }
+  if(!confirm('确定要清空所有学习数据吗？此操作不可恢复。')) return;
+  if(!confirm('⚠️ 最后确认：继续将清空全部历史学习进度（答题统计、错题本、已完成轮数、权重、弱项设置等），且无法恢复。确定继续吗？')) return;
+  var keys=[]; for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k.indexOf('ypf_')===0) keys.push(k); }
+  for(var j=0;j<keys.length;j++) localStorage.removeItem(keys[j]);
+  S.page='home'; render();
 }
 
 S.theme=LS.get('theme','light');
