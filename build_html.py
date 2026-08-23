@@ -451,6 +451,38 @@ LECT_FILES = [
     ("sum", "汇总",  "学习汇总（系统化主线）", "AI 整合 5 课",      "测听→声导抗→真耳分析→验配→康复", "学习汇总.md"),
 ]
 
+def render_flow(lines):
+    """把 flow DSL（每行 '阶段 | 子项'）渲染为纵向卡片流程图。"""
+    nodes = []
+    for ln in lines:
+        ln = ln.strip()
+        if not ln:
+            continue
+        if "|" in ln:
+            stage, _, subs = ln.partition("|")
+            stage = stage.strip()
+            tags = [t.strip() for t in re.split(r"[、,，;；]", subs) if t.strip()]
+        else:
+            stage = ln
+            tags = []
+        nodes.append((stage, tags))
+    if not nodes:
+        return ""
+    html = ['<div class="lec-flow">']
+    for idx, (stage, tags) in enumerate(nodes):
+        html.append('<div class="flow-node">')
+        html.append('<div class="flow-stage">'+_html.escape(stage)+'</div>')
+        if tags:
+            html.append('<div class="flow-tags">')
+            for t in tags:
+                html.append('<span class="flow-tag">'+_html.escape(t)+'</span>')
+            html.append('</div>')
+        html.append('</div>')
+        if idx < len(nodes)-1:
+            html.append('<div class="flow-arrow">▼</div>')
+    html.append('</div>')
+    return "\n".join(html)
+
 def md_inline(text):
     """极简 Markdown -> HTML：支持 标题/表格/列表/引用/粗体/分隔线/段落。"""
     lines = text.split("\n")
@@ -462,6 +494,18 @@ def md_inline(text):
         s = ln.strip()
         if not s:
             i += 1; continue
+        if s.startswith("```"):   # 代码块（含 flow 流程图）
+            fence = s[3:].strip()
+            i += 1
+            cb = []
+            while i < len(lines) and lines[i].strip() != "```":
+                cb.append(lines[i]); i += 1
+            i += 1  # 跳过结束 ```
+            if fence == "flow":
+                out.append(render_flow(cb))
+            else:
+                out.append('<pre class="lec-code">'+esc("\n".join(cb))+'</pre>')
+            continue
         if s.startswith("---"):
             out.append("<hr>"); i += 1; continue
         if s.startswith("###"):

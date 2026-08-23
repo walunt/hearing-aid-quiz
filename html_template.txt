@@ -64,6 +64,14 @@ body { font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; backgr
 .lec-sec-head h3 { margin:0; }
 .lec-practice { flex-shrink:0; font-size:13px; padding:7px 14px; border-radius:8px; border:1px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer; white-space:nowrap; }
 .lec-practice:hover { opacity:.88; }
+.lec-code { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:13px; white-space:pre-wrap; line-height:1.6; overflow-x:auto; }
+/* 知识地图流程图 */
+.lec-flow { display:flex; flex-direction:column; align-items:stretch; gap:0; margin:14px 0; }
+.flow-node { border:1px solid var(--accent); background:linear-gradient(180deg, rgba(14,165,233,.06), rgba(14,165,233,.02)); border-radius:10px; padding:12px 16px; }
+.flow-stage { font-weight:700; color:var(--foreground); font-size:15px; }
+.flow-tags { margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; }
+.flow-tag { background:var(--card); border:1px solid var(--border); border-radius:6px; padding:3px 9px; font-size:13px; color:var(--muted-foreground); }
+.flow-arrow { text-align:center; color:var(--accent); font-size:14px; line-height:1.2; padding:3px 0; }
 
 /* 模拟考试 / 设置页 */
 .range-row { margin:16px 0; }
@@ -299,7 +307,7 @@ var TOTAL = __TOTAL__;
 var SINGLE_COUNT = __SINGLE_COUNT__;
 var MULTI_COUNT = __MULTI_COUNT__;
 var SIMILAR_COUNT = __SIMILAR_COUNT__;
-var VERSION = 'v1.25';
+var VERSION = 'v1.26';
 var app = document.getElementById('app');
 
 // ========== localStorage ==========
