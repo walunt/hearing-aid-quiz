@@ -69,7 +69,41 @@ body { font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; backgr
 
 /* 刷题页 */
 .q-wrap { display:grid; grid-template-columns:1fr 250px; gap:18px; }
-@media(max-width:760px){ .q-wrap{grid-template-columns:1fr;} }
+/* 手机/窄屏：单列紧凑布局（断点 1100px 覆盖 iPhone 横屏 ~932px，避免横屏走双栏导致侧栏按钮出屏） */
+@media(max-width:1100px){
+  .q-wrap{grid-template-columns:1fr;}
+  #app{padding:12px 12px 80px;}
+  .topbar{padding:0 0 10px;}
+  .topbar .brand{font-size:16px;}
+  .tab-btn{padding:6px 10px;font-size:13px;}
+  .q-card{padding:14px;}
+  .q-stem{font-size:15px;line-height:1.7;margin:12px 0 14px;}
+  .options{gap:8px;}
+  .option{padding:10px 12px;font-size:14px;border-radius:10px;}
+  .option .letter{width:24px;height:24px;font-size:13px;margin-right:10px;}
+  .confirm-bar{margin-top:12px;}
+  .feedback{padding:12px;margin-top:12px;font-size:14px;line-height:1.6;}
+  .feedback .explain{padding:10px 12px;font-size:13px;line-height:1.7;}
+  .next-hint{margin-top:12px;font-size:11px;}
+  .side{padding:14px;position:static;top:auto;}
+  .side .big{font-size:26px;}
+  .side .p-row{padding:6px 0;font-size:12px;}
+  .side .dots{gap:3px;}
+  .side .dot{width:15px;height:15px;font-size:10px;}
+  .card{padding:14px;margin-bottom:12px;}
+  .card h2{font-size:16px;margin-bottom:8px;}
+  .home-hero h1{font-size:22px;}
+  .home-hero .sub{font-size:12px;}
+  .stats-grid{gap:8px;margin:12px 0;}
+  .stats-grid .s-item{padding:10px 6px;}
+  .stats-grid .s-item .n{font-size:22px;}
+  .mode-grid{gap:8px;margin:10px 0;}
+  .mode-btn{padding:10px 12px;}
+  /* 答题后固定底部"下一题"：横屏低高度下无需滑动即可进入下一题 */
+  .mobile-next{display:block;position:fixed;left:10px;right:10px;bottom:10px;z-index:60;}
+  .mobile-next .btn{width:100%;padding:13px;font-size:16px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.25);}
+}
+.mobile-next{display:none;}
 .q-card { background:var(--card); border-radius:var(--radius); padding:28px; box-shadow:var(--shadow); border:1px solid var(--border); }
 .q-tag { display:inline-block; padding:3px 10px; border-radius:6px; font-size:12px; font-weight:600; margin-right:8px; }
 .q-tag.tf { background:#dbeafe; color:#1d4ed8; }
@@ -197,7 +231,7 @@ var TOTAL = __TOTAL__;
 var SINGLE_COUNT = __SINGLE_COUNT__;
 var MULTI_COUNT = __MULTI_COUNT__;
 var SIMILAR_COUNT = __SIMILAR_COUNT__;
-var VERSION = 'v1.11';
+var VERSION = 'v1.12';
 var app = document.getElementById('app');
 
 // ========== localStorage ==========
@@ -384,7 +418,8 @@ function renderQuiz(){
       '<div class="explain" style="margin-top:12px"><div class="exp-title">📖 '+q.exp.title+'</div>'+q.exp.text.replace(/\n/g,'<br>')+'</div></div>';
   }
 
-  mainHTML += '<div class="next-hint">'+(S.answered?'按 <kbd>空格</kbd> 或点击右栏进入下一题':'点击选项作答')+'</div></div>';
+  mainHTML += '<div class="next-hint">'+(S.answered?'点击「下一题」或按 <kbd>空格</kbd>':'点击选项作答')+'</div>'+
+    (S.answered?'<div class="mobile-next"><button class="btn btn-primary" onclick="pickNext()">下一题 →</button></div>':'')+'</div>';
   var dots=''; for(var d=0;d<S.history.length;d++){ dots+='<span class="dot '+(S.history[d].correct?'ok':'bad')+'">'+(S.history[d].correct?'✓':'✗')+'</span>'; }
   var sideHTML = '<div class="side">'+
     '<div class="p-title">📊 学习面板</div>'+
