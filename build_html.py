@@ -393,7 +393,7 @@ similar_json = json.dumps(similar_data, ensure_ascii=False)
 # ===== 富化相似题：把每题匹配回题库完整题（题干+选项+答案）=====
 from difflib import SequenceMatcher
 def _norm(s):
-    return re.sub(r"[\s【】（）()《》。，、；：？?！!\-\.\u00d7:·]", "", s)
+    return re.sub(r"[\s【】（）()《》。，、；：？?！!\-\.\u00d7:·…]", "", s)
 def _find_bank(stem):
     ns = _norm(stem); best = None; bs = 0
     for q in BANK:
@@ -406,6 +406,18 @@ for g in similar_data:
     for tag, text in g["lines"]:
         new_lines.append((tag, text, _find_bank(text)))
     g["lines"] = new_lines
+    # 变体组：variant 为"版本A ≈ 版本B"的对比文本 → 拆成两行，分别匹配回题库完整题
+    # （否则只显示 shared_ans 答案，没有题干和选项，不便记忆）
+    if g["type"].startswith("【变体") and g["variant"]:
+        parts = re.split(r"\s*≈\s*", g["variant"])
+        vlines = []
+        for idx, part in enumerate(parts):
+            stem = part.strip()
+            if not stem:
+                continue
+            vlines.append(("题 A" if idx == 0 else "题 B", stem, _find_bank(stem)))
+        if vlines:
+            g["lines"] = vlines
 similar_json = json.dumps(similar_data, ensure_ascii=False)
 
 # ===== 纯记忆题（年份 / 英文·数字代号），完整保留题干+选项+答案 =====
