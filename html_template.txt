@@ -61,7 +61,24 @@ body { font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; backgr
 .lec-sum { border-color:var(--accent); }
 .lec-sum .lect-title { color:var(--accent); }
 
-/* 首页 */
+/* 模拟考试 / 设置页 */
+.range-row { margin:16px 0; }
+.range-row label { display:flex; justify-content:space-between; font-size:14px; margin-bottom:6px; }
+.range-row label b { color:var(--accent); font-size:16px; }
+input[type=range]{ width:100%; accent-color:var(--accent); }
+.exam-timer { font-size:22px; font-weight:800; color:var(--accent); text-align:center; margin:10px 0; }
+.exam-timer.warn { color:var(--danger,#e53e3e); }
+.report-box { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; }
+.report-score { font-size:42px; font-weight:800; text-align:center; }
+.report-pass { color:var(--accent); } .report-fail { color:#e53e3e; }
+.set-item { display:flex; flex-direction:column; gap:8px; padding:14px 0; border-bottom:1px solid var(--border); }
+.set-item:last-child { border-bottom:none; }
+.set-item .desc { font-size:12px; color:var(--muted); }
+.switch { display:inline-flex; align-items:center; gap:8px; cursor:pointer; }
+.btn-mini { font-size:12px; padding:6px 12px; }
+.spaced { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
+.hidden-file { display:none; }
+
 .home-hero { text-align:center; padding:22px 0 6px; }
 .home-hero h1 { font-size:28px; font-weight:800; background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 .home-hero .sub { color:var(--sub); margin-top:8px; font-size:14px; }
@@ -276,7 +293,7 @@ var TOTAL = __TOTAL__;
 var SINGLE_COUNT = __SINGLE_COUNT__;
 var MULTI_COUNT = __MULTI_COUNT__;
 var SIMILAR_COUNT = __SIMILAR_COUNT__;
-var VERSION = 'v1.18';
+var VERSION = 'v1.19';
 var app = document.getElementById('app');
 
 // ========== localStorage ==========
@@ -309,11 +326,13 @@ function render(){
   else if(S.page==='wrong') renderWrong();
   else if(S.page==='topic') renderTopic();
   else if(S.page==='lecture') renderLecture();
+  else if(S.page==='exam') renderExam();
+  else if(S.page==='setting') renderSetting();
 }
 
 function topbar(active){
   var tabs = [
-    ['首页','home'],['刷题','quiz'],['错题本','wrong'],['分类练习','topic'],['相似题对比','similar'],['速记手册','cheat'],['网课要点','lecture']
+    ['首页','home'],['刷题','quiz'],['错题本','wrong'],['分类练习','topic'],['相似题对比','similar'],['速记手册','cheat'],['网课要点','lecture'],['设置','setting']
   ];
   var html = '<div class="topbar"><span class="brand">验配师·复习系统</span><span class="sp"></span>';
   for(var i=0;i<tabs.length;i++){
@@ -386,7 +405,9 @@ function renderHome(){
   '<div class="card"><h2>按知识点分类练习</h2><p>按考查主题挑题刷：耳部解剖、声学基础、测听方法、声导抗、儿童康复、助听器技术、职业道德等。练到薄弱主题，逐个击破。</p>'+
     '<button class="btn btn-ghost" onclick="goTab(\'topic\')">去选择分类 →</button></div>'+
   '<div class="card"><h2>算法说明</h2><p>系统记录每道题的出现权重：答对权重减半（减少出现），答错权重翻倍（更频繁出现）。越薄弱的题越容易被抽到（间隔重复）。答错后自动展示相关知识点解析。做题记录保存在本机浏览器，随时返回。</p></div>'+
-  '<div class="card" style="text-align:center"><button class="btn btn-danger btn-mini" onclick="resetAll()">重置所有学习数据</button></div>'+
+  '<div class="card"><h2>📝 模拟考试</h2><p>按真实考试节奏：自定义单选/多选题量与时长，限时作答、交卷判分。检验当前水平，找出薄弱点。</p>'+
+    '<button class="btn btn-primary" onclick="goTab(\'exam\')">去设置模拟考 →</button></div>'+
+  '<div class="card" style="text-align:center"><button class="btn btn-danger btn-mini" onclick="goTab(\'setting\')">⚙ 系统数据设置（重置 / 导入导出 / 弱项重练）</button></div>'+
   '<div class="footer">本系统由核桃制作 · '+VERSION+'</div>';
 }
 function modeBtn(mode,title,desc,weak){
@@ -397,7 +418,17 @@ function modeBtn(mode,title,desc,weak){
 function setMode(m){ S.mode=m; renderHome(); }
 
 // ========== 刷题 ==========
-function startQuiz(){ S.page='quiz'; S.history=[]; pickNext(); }
+function startQuiz(){
+  // 弱项间隔重练：开启且超间隔 → 优先把错题本塞进本轮前段
+  S.weakFirst = [];
+  var wr = LS.get('weak_review', {on:false, days:1, last:0});
+  if(wr.on && wr.days){
+    var passed = (Date.now() - (wr.last||0)) >= wr.days*86400000;
+    var wrong = getWrong();
+    if(passed && wrong.length){ S.weakFirst = wrong.slice(); wr.last = Date.now(); LS.set('weak_review', wr); }
+  }
+  S.page='quiz'; S.history=[]; pickNext();
+}
 function pickNext(){
   var pool=[];
   if(S.mode==='all'){ for(var i=0;i<BANK.length;i++) pool.push(i); }
@@ -408,7 +439,13 @@ function pickNext(){
   else if(S.mode==='topic'){ if(S.topic!=null){ pool=topicPool(S.topic); if(!pool.length){ for(var i=0;i<BANK.length;i++) pool.push(i); } } }
   else if(S.mode==='undone'){ var d=getDone(); for(var i=0;i<BANK.length;i++){ if(d.indexOf(i)<0) pool.push(i); } }
   if(!pool.length){ for(var i=0;i<BANK.length;i++) pool.push(i); }
-  S.qid = weightedPick(pool);
+  if(S.weakFirst && S.weakFirst.length){
+    var wf = S.weakFirst.shift();           // 优先出弱项错题
+    if(pool.indexOf(wf)>=0 || S.mode==='all' || S.mode==='wrong' || S.mode==='weak'){ S.qid=wf; }
+    else { S.weakFirst.unshift(wf); S.qid = weightedPick(pool); }
+  } else {
+    S.qid = weightedPick(pool);
+  }
   S.answered=false; S.multi_sel={};
   render();
 }
@@ -673,6 +710,173 @@ function toggleLec(id){
   var a=document.getElementById('arw-'+id);
   if(b.style.display==='none'){ b.style.display=''; a.textContent='▾'; }
   else { b.style.display='none'; a.textContent='▸'; }
+}
+
+// ========== 模拟考试 ==========
+var EXAM = { single:30, multi:10, minutes:60, timer:null, deadline:0, qlist:[], idx:0, answers:{}, finished:false };
+function renderExam(){
+  if(EXAM.finished){ app.innerHTML = topbar('exam') + examReport(); return; }
+  if(EXAM.qlist.length){ app.innerHTML = topbar('exam') + examQuiz(); examTick(); return; }
+  // 配置页：拖拽滑块
+  var h = topbar('exam');
+  h += '<div class="card"><h2>📝 模拟考试配置</h2>'+
+    '<div class="range-row"><label>单选题数量 <b id="rv-s">'+EXAM.single+'</b></label>'+
+      '<input type="range" min="5" max="120" step="5" value="'+EXAM.single+'" oninput="EXAM.single=+this.value;document.getElementById(\'rv-s\').textContent=this.value"></div>'+
+    '<div class="range-row"><label>多选题数量 <b id="rv-m">'+EXAM.multi+'</b></label>'+
+      '<input type="range" min="0" max="60" step="5" value="'+EXAM.multi+'" oninput="EXAM.multi=+this.value;document.getElementById(\'rv-m\').textContent=this.value"></div>'+
+    '<div class="range-row"><label>考试时间（分钟） <b id="rv-t">'+EXAM.minutes+'</b></label>'+
+      '<input type="range" min="10" max="180" step="5" value="'+EXAM.minutes+'" oninput="EXAM.minutes=+this.value;document.getElementById(\'rv-t\').textContent=this.value"></div>'+
+    '<div class="spaced"><button class="btn btn-primary" onclick="startExam()">开始考试</button>'+
+    '<button class="btn btn-ghost" onclick="goTab(\'home\')">返回</button></div>'+
+    '<p class="desc" style="color:var(--muted);font-size:12px;margin-top:10px">共 '+ (EXAM.single+EXAM.multi) +' 题 · 从题库随机抽题 · 限时自动交卷</p></div>';
+  app.innerHTML = h;
+}
+function startExam(){
+  var sp=[], mp=[];
+  for(var i=0;i<BANK.length;i++){ if(BANK[i].multi) mp.push(i); else sp.push(i); }
+  function pick(arr,n){ var a=arr.slice(), out=[]; for(var k=0;k<n&&a.length;k++){ out.push(a.splice(Math.floor(Math.random()*a.length),1)[0]); } return out; }
+  EXAM.qlist = pick(sp, EXAM.single).concat(pick(mp, EXAM.multi));
+  EXAM.idx=0; EXAM.answers={}; EXAM.finished=false;
+  EXAM.deadline = Date.now() + EXAM.minutes*60000;
+  if(EXAM.timer) clearInterval(EXAM.timer);
+  EXAM.timer = setInterval(examTick, 1000);
+  S.page='exam';
+  render();
+}
+function examTick(){
+  if(EXAM.finished) return;
+  var left = Math.max(0, EXAM.deadline - Date.now());
+  var el = document.getElementById('exam-timer');
+  if(el){ var m=Math.floor(left/60000), s=Math.floor((left%60000)/1000);
+    el.textContent = (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+    el.className = 'exam-timer' + (left<60000?' warn':''); }
+  if(left<=0){ submitExam(true); }
+}
+function examQuiz(){
+  var q = BANK[EXAM.qlist[EXAM.idx]];
+  var tot = EXAM.qlist.length;
+  var h = '<div class="exam-timer" id="exam-timer">--:--</div>';
+  h += '<div class="q-card"><div><span class="q-tag '+(q.multi?'multi':'sel')+'">'+(q.multi?'多选题':'单选题')+'</span>'+
+    '<span class="q-meta">第 '+(EXAM.idx+1)+' / '+tot+' 题</span></div>'+
+    '<div class="q-stem">'+q.s+'</div><div class="options">';
+  var chosen = EXAM.answers[EXAM.qlist[EXAM.idx]] || [];
+  for(var i=0;i<q.o.length;i++){
+    var k=q.o[i].k, sel = chosen.indexOf(k)>=0;
+    h += '<div class="option'+(sel?' selected':'')+'" onclick="examPick(\''+k+'\')"><span class="letter">'+k+'</span><span>'+q.o[i].t+'</span></div>';
+  }
+  h += '</div><div class="spaced">';
+  h += '<button class="btn btn-ghost" onclick="examPrev()">上一题</button>';
+  h += (EXAM.idx<tot-1) ? '<button class="btn btn-primary" onclick="examNext()">下一题</button>'
+                        : '<button class="btn btn-primary" onclick="submitExam(false)">交卷</button>';
+  h += '</div></div>';
+  return topbar('exam') + h;
+}
+function examPick(k){
+  var id=EXAM.qlist[EXAM.idx]; var arr=EXAM.answers[id]||[];
+  var q=BANK[id];
+  if(q.multi){ if(arr.indexOf(k)>=0) arr.splice(arr.indexOf(k),1); else arr.push(k); } // 多选可多选
+  else { arr=[k]; } // 单选
+  EXAM.answers[id]=arr; render();
+}
+function examNext(){ if(EXAM.idx<EXAM.qlist.length-1) EXAM.idx++; render(); }
+function examPrev(){ if(EXAM.idx>0) EXAM.idx--; render(); }
+function submitExam(auto){
+  if(EXAM.timer) clearInterval(EXAM.timer);
+  EXAM.finished = true;
+  var wrong=getWrong();
+  for(var i=0;i<EXAM.qlist.length;i++){
+    var q=BANK[EXAM.qlist[i]], ans=EXAM.answers[EXAM.qlist[i]]||[];
+    var ok = ans.length>0 && ans.slice().sort().join('')===q.a.split('').sort().join('');
+    if(!ok && wrong.indexOf(EXAM.qlist[i])<0) wrong.push(EXAM.qlist[i]);
+  }
+  LS.set('wrong', wrong);
+  render();
+}
+function examReport(){
+  var tot=EXAM.qlist.length, cor=0, sCor=0, mCor=0, sTot=0, mTot=0;
+  var wrongList=[];
+  for(var i=0;i<tot;i++){
+    var q=BANK[EXAM.qlist[i]], ans=EXAM.answers[EXAM.qlist[i]]||[];
+    var ok = ans.length>0 && ans.slice().sort().join('')===q.a.split('').sort().join('');
+    if(ok){ cor++; if(q.multi) mCor++; else sCor++; }
+    if(q.multi) mTot++; else sTot++;
+    if(!ok) wrongList.push(EXAM.qlist[i]);
+  }
+  var pass = cor/tot >= 0.6;
+  var h = '<div class="report-box"><h2 style="text-align:center">📊 模拟考试报告</h2>'+
+    '<div class="report-score '+(pass?'report-pass':'report-fail')+'">'+cor+' / '+tot+'</div>'+
+    '<p style="text-align:center;color:var(--muted)">正确率 '+Math.round(cor/tot*100)+'% · '+(pass?'✅ 通过（≥60%）':'❌ 未通过')+'</p>'+
+    '<div class="p-row"><span>单选题</span><b>'+sCor+' / '+sTot+'</b></div>'+
+    '<div class="p-row"><span>多选题</span><b>'+mCor+' / '+mTot+'</b></div>'+
+    '<div class="p-row"><span>本次错题</span><b class="red">'+wrongList.length+' 题</b></div>'+
+    '<p class="desc" style="color:var(--muted);font-size:12px;margin-top:8px">错题已自动加入系统「错题本」，可在刷题时重点练习。</p>'+
+    '<div class="spaced" style="justify-content:center;margin-top:12px"><button class="btn btn-primary" onclick="examRestart()">再考一次</button>'+
+    '<button class="btn btn-ghost" onclick="goTab(\'wrong\')">看错题本 →</button>'+
+    '<button class="btn btn-ghost" onclick="goTab(\'home\')">返回首页</button></div></div>';
+  if(wrongList.length){
+    h += '<div class="card" style="margin-top:16px"><h2>❌ 本次错题回顾</h2>';
+    for(var w=0;w<wrongList.length;w++){
+      var q=BANK[wrongList[w]];
+      h += '<div class="sim-item"><div class="g-title">'+q.s+'</div>'+
+        '<div class="sim-ans">正确答案：<b>'+q.a+'</b></div></div>';
+    }
+    h += '</div>';
+  }
+  return topbar('exam') + h;
+}
+function examRestart(){ EXAM.qlist=[]; EXAM.finished=false; render(); }
+
+// ========== 系统数据设置 ==========
+function renderSetting(){
+  var weak = LS.get('weak_review', {on:false, days:1, last:0});
+  var h = topbar('setting');
+  h += '<div class="card"><h2>⚙ 系统数据设置</h2><p style="color:var(--muted)">管理学习数据：重置进度、跨设备迁移、弱项间隔重练。</p></div>';
+  // 弱项重练
+  h += '<div class="card"><div class="set-item"><div><b>④ 弱项间隔重练</b></div>'+
+    '<div class="desc">开启后，进入刷题时若距上次已超过设定天数，会自动把「错题本」题目优先塞进练习队列，确保旧错题周期性复现、真正记住。</div>'+
+    '<label class="switch"><input type="checkbox" '+(weak.on?'checked':'')+' onchange="setWeakOn(this.checked)"> 启用弱项间隔重练</label>'+
+    '<div class="range-row" style="margin-top:6px"><label>间隔天数 <b id="rv-d">'+weak.days+'</b></label>'+
+      '<input type="range" min="1" max="30" step="1" value="'+weak.days+'" oninput="weakSetDays(+this.value)"></div></div></div>';
+  // 导入导出
+  h += '<div class="card"><div class="set-item"><div><b>⑤ 进度导入 / 导出</b></div>'+
+    '<div class="desc">导出当前全部学习数据（答题统计、错题本、进度、权重、弱项设置）为 JSON 文件；换设备后导入即可恢复，手机与电脑进度互通。</div>'+
+    '<div class="spaced"><button class="btn btn-primary btn-mini" onclick="exportData()">⬇ 导出进度 JSON</button>'+
+    '<button class="btn btn-ghost btn-mini" onclick="document.getElementById(\'imp\').click()">⬆ 导入进度 JSON</button>'+
+    '<input type="file" id="imp" class="hidden-file" accept="application/json" onchange="importData(this)"></div></div></div>';
+  // 重置
+  h += '<div class="card"><div class="set-item"><div><b>① 重置所有学习数据</b></div>'+
+    '<div class="desc">清空本题库全部进度：答题统计、错题本、已完成轮数、权重、弱项设置。此操作不可恢复。</div>'+
+    '<button class="btn btn-danger btn-mini" onclick="resetAll()">清空所有数据</button></div></div>';
+  h += '<div class="footer">本系统由核桃制作 · '+VERSION+'</div>';
+  app.innerHTML = h;
+}
+function setWeakOn(v){ var w=LS.get('weak_review',{}); w.on=v; LS.set('weak_review',w); }
+function weakSetDays(d){ var w=LS.get('weak_review',{}); w.days=d; LS.set('weak_review',w); document.getElementById('rv-d').textContent=d; }
+function exportData(){
+  var data={ v:VERSION, exportAt:Date.now(),
+    stats:LS.get('stats',{}), wrong:LS.get('wrong',[]), done:LS.get('done',[]),
+    rounds:LS.get('rounds',0), weights:LS.get('weights',{}), weak_review:LS.get('weak_review',{}) };
+  var blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a'); a.href=url; a.download='验配师复习进度_'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+function importData(input){
+  if(!input.files || !input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      var d = JSON.parse(e.target.result);
+      if(d.stats) LS.set('stats',d.stats);
+      if(d.wrong) LS.set('wrong',d.wrong);
+      if(d.done) LS.set('done',d.done);
+      if(d.rounds!=null) LS.set('rounds',d.rounds);
+      if(d.weights) LS.set('weights',d.weights);
+      if(d.weak_review) LS.set('weak_review',d.weak_review);
+      alert('导入成功！已恢复进度数据。'); render();
+    }catch(err){ alert('导入失败：文件格式不正确。'); }
+  };
+  reader.readAsText(input.files[0]);
 }
 
 function renderCheat(){
