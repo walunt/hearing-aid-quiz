@@ -467,7 +467,18 @@ def md_inline(text):
         if s.startswith("###"):
             out.append("<h4>"+esc(s[3:].strip())+"</h4>"); i += 1; continue
         if s.startswith("##"):
-            out.append("<h3>"+esc(s[2:].strip())+"</h3>"); i += 1; continue
+            title_txt = s[2:].strip()
+            # 查找关联题库主题：标题包含某个映射 key
+            topics = []
+            for key, tlist in LECT_TOPIC_MAP.items():
+                if key in title_txt:
+                    topics = tlist; break
+            btn = ""
+            if topics:
+                btn = ('<button class="lec-practice" onclick="practiceTopics('
+                       + json.dumps(topics, ensure_ascii=False)
+                       + ')">🏋 练本节相关的题 →</button>')
+            out.append('<div class="lec-sec-head"><h3>'+esc(title_txt)+'</h3>'+btn+'</div>'); i += 1; continue
         if s.startswith("#"):
             out.append("<h2>"+esc(s[1:].strip())+"</h2>"); i += 1; continue
         if s.startswith(">"):
@@ -495,6 +506,12 @@ def md_inline(text):
     return "\n".join(out)
 
 LECTURES = []
+# 章节 -> 题库主题 的关联映射（人工对齐，精准跳转）
+_LECT_MAP_PATH = os.path.join(BASE, "lecture_topic_map.json")
+LECT_TOPIC_MAP = {}
+if os.path.exists(_LECT_MAP_PATH):
+    LECT_TOPIC_MAP = json.load(open(_LECT_MAP_PATH, encoding="utf-8"))
+
 for lid, no, title, teacher, dur, fn in LECT_FILES:
     p = os.path.join(LECT_SRC, fn)
     body = "（笔记文件缺失：" + fn + "）"

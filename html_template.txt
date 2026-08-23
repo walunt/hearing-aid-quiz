@@ -60,6 +60,10 @@ body { font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; backgr
 .lec-md table.lec-tbl th { background:var(--bg); font-weight:700; }
 .lec-sum { border-color:var(--accent); }
 .lec-sum .lect-title { color:var(--accent); }
+.lec-sec-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin:18px 0 6px; }
+.lec-sec-head h3 { margin:0; }
+.lec-practice { flex-shrink:0; font-size:13px; padding:7px 14px; border-radius:8px; border:1px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer; white-space:nowrap; }
+.lec-practice:hover { opacity:.88; }
 
 /* 模拟考试 / 设置页 */
 .range-row { margin:16px 0; }
@@ -295,7 +299,7 @@ var TOTAL = __TOTAL__;
 var SINGLE_COUNT = __SINGLE_COUNT__;
 var MULTI_COUNT = __MULTI_COUNT__;
 var SIMILAR_COUNT = __SIMILAR_COUNT__;
-var VERSION = 'v1.23';
+var VERSION = 'v1.24';
 var app = document.getElementById('app');
 
 // ========== localStorage ==========
@@ -373,6 +377,9 @@ function practiceOne(qid){ S.page='quiz'; S.qid=qid; S.history=[]; S.answered=fa
 function topicPool(topic){ var p=[]; for(var i=0;i<BANK.length;i++){ if(getTopic(BANK[i])===topic) p.push(i); } return p; }
 function startWrong(){ S.mode='wrong'; startQuiz(); }
 function startUndone(){ S.mode='undone'; startQuiz(); }
+function practiceTopics(topics){
+  S.mode='topics'; S.topics=topics.slice(); S.page='quiz'; S.history=[]; pickNext();
+}
 function startTopic(t){ S.topic=t; S.mode='topic'; startQuiz(); }
 
 // ========== 首页 ==========
@@ -439,6 +446,7 @@ function pickNext(){
   else if(S.mode==='weak'){ var w=getWeights(); for(var i=0;i<BANK.length;i++){ if((w[i]||1.0)>=1.5) pool.push(i); } if(!pool.length){ for(var i=0;i<BANK.length;i++) pool.push(i); } }
   else if(S.mode==='wrong'){ pool=getWrong().slice(); if(!pool.length){ for(var i=0;i<BANK.length;i++) pool.push(i); } }
   else if(S.mode==='topic'){ if(S.topic!=null){ pool=topicPool(S.topic); if(!pool.length){ for(var i=0;i<BANK.length;i++) pool.push(i); } } }
+  else if(S.mode==='topics'){ var tp=[]; for(var ti=0;ti<S.topics.length;ti++){ tp=tp.concat(topicPool(S.topics[ti])); } pool=tp; if(!pool.length){ for(var i=0;i<BANK.length;i++) pool.push(i); } }
   else if(S.mode==='undone'){ var d=getDone(); for(var i=0;i<BANK.length;i++){ if(d.indexOf(i)<0) pool.push(i); } }
   if(!pool.length){ for(var i=0;i<BANK.length;i++) pool.push(i); }
   if(S.weakFirst && S.weakFirst.length){
