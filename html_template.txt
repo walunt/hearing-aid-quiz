@@ -33,6 +33,19 @@ body { font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; backgr
 .card h2 { font-size:18px; margin-bottom:12px; }
 .card p { color:var(--sub); font-size:14px; line-height:1.8; }
 
+/* 网课要点卡片 */
+.lect-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:12px; overflow:hidden; cursor:pointer; }
+.lect-card:hover { border-color:var(--accent); }
+.lect-head { display:flex; align-items:center; gap:12px; padding:14px 16px; }
+.lect-no { background:var(--accent); color:#fff; font-size:12px; font-weight:700; padding:3px 8px; border-radius:6px; white-space:nowrap; }
+.lect-title { font-size:15px; font-weight:700; }
+.lect-meta { color:var(--muted); font-size:12px; margin-left:auto; white-space:nowrap; }
+.lect-arw { color:var(--accent); font-size:14px; transition:transform .2s; }
+.lect-body { padding:0 16px 14px; border-top:1px solid var(--border); }
+.lect-pts { margin:12px 0; padding-left:20px; }
+.lect-pts li { font-size:13.5px; line-height:1.7; color:var(--text); margin-bottom:4px; }
+.lect-file { font-size:12px; color:var(--muted); background:var(--bg); padding:8px 10px; border-radius:8px; }
+
 /* 首页 */
 .home-hero { text-align:center; padding:22px 0 6px; }
 .home-hero h1 { font-size:28px; font-weight:800; background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
@@ -248,7 +261,7 @@ var TOTAL = __TOTAL__;
 var SINGLE_COUNT = __SINGLE_COUNT__;
 var MULTI_COUNT = __MULTI_COUNT__;
 var SIMILAR_COUNT = __SIMILAR_COUNT__;
-var VERSION = 'v1.16';
+var VERSION = 'v1.17';
 var app = document.getElementById('app');
 
 // ========== localStorage ==========
@@ -280,11 +293,12 @@ function render(){
   else if(S.page==='cheat') renderCheat();
   else if(S.page==='wrong') renderWrong();
   else if(S.page==='topic') renderTopic();
+  else if(S.page==='lecture') renderLecture();
 }
 
 function topbar(active){
   var tabs = [
-    ['首页','home'],['刷题','quiz'],['错题本','wrong'],['分类练习','topic'],['相似题对比','similar'],['速记手册','cheat']
+    ['首页','home'],['刷题','quiz'],['错题本','wrong'],['分类练习','topic'],['相似题对比','similar'],['速记手册','cheat'],['网课要点','lecture']
   ];
   var html = '<div class="topbar"><span class="brand">验配师·复习系统</span><span class="sp"></span>';
   for(var i=0;i<tabs.length;i++){
@@ -298,7 +312,28 @@ function goTab(p){
   S.page=p; render();
 }
 
-// ========== 错题本 / 分类 工具 ==========
+// ========== 网课要点数据（钉钉直播回放 5 课 + 学习汇总）============
+var LECTURES = [
+  {id:'l1', no:'第①课', title:'中耳传声能力评估', teacher:'周梦琪（戴蒙特集团）', dur:'约 1h11m',
+   points:['声导抗=声阻抗+声导纳；测反射声能量换算声顺值','探测音：成人226Hz（劲度）；<6月婴儿必测100Hz（质量）','鼓室图ABC分型：A正常/As声顺<0.3(听骨链固定)/Ad>1.6(中断)/B平坦(积液)/C负压(咽鼓管)','正常值：外耳道容积0.6~1.5mL、声顺0.3~1.6mL、峰压-100~+50daPa','声反射：>80dB引镫骨肌收缩保护内耳；阈70~95dB；衰减>50%(10s)提示蜗后','真耳分析REM：REUG未助/REAR助后/REOG堵耳/RECD耦合腔差；验配必做验证'],
+   file:'钉钉直播回放_周梦琪戴孟特_中耳传声能力评估.md'},
+  {id:'l2', no:'第②课', title:'三级助听器模块1', teacher:'戴瑞邦（WSA听力集团）', dur:'约 2h10m',
+   points:['儿童康复三早：早发现→早诊断→早干预（可加早语训）','新生儿筛查：出生24~72h做OAE/AABR；42天内复筛；复筛未过3个月内诊断','确诊永久性感音神经性聋→6个月内配助听器；10~12月可人工耳蜗','听神经病：OAE可引出但AABR引不出','病史：孕产史(弓形体/巨细胞/风疹/梅毒/单疱)、耳毒性药、高胆红素→听神经病；50~60%遗传(GJB2/SLC26A4/线粒体DNA)','小儿行为测听：BOA<6月、VRA 7月~2.5岁、PA游戏测听2.5~5岁','学龄期康复：噪声/混响/信噪比；座位坐2~3排中间；听觉四过程觉察→辨别→识别→理解'],
+   file:'钉钉直播回放_戴瑞邦_三级助听器模块1.md'},
+  {id:'l3', no:'第③课', title:'声导抗测试', teacher:'申屠思灵', dur:'约 1h50m',
+   points:['声导抗=声阻抗+声导纳；中耳三因素：质量(高频678/1000Hz)/劲度(低频226Hz)/摩擦','鼓室图Jagr分型：A/As/Ad/B/C + 宽频声导抗简述','B型看等效容积区分：积液/耵聍栓塞/鼓膜穿孔','声反射：同侧70~95dB、对侧低3~12dB、白噪声低20~25dB','传导性聋差耳同侧对侧均消失；感音性看重振(引不出提示蜗后)','声反射衰减500/1000Hz、10s内>50%提示蜗后；潜伏期>140ms或双耳差>40ms提示蜗后','小儿行为测听BOA/VRA/PA英文与适用年龄一一对应；建立条件化给足声音'],
+   file:'钉钉直播回放_申屠思灵_声导抗测试.md'},
+  {id:'l4', no:'第④课', title:'言语测听与纯音测听', teacher:'申屠思灵', dur:'约 2h',
+   points:['听觉vs听力：听觉=生理接收；听力=心理认知理解；四层级察觉→辨别→认定→识别','言语识别阈SRT(听懂50%)、言语察觉阈SDT、最大言语识别率(单/双音节词表)','PI曲线五型：A正常/B平移(传导)/C平缓(蜗性)/D回跌/E未引出(蜗后)','香蕉图：听力图各点进香蕉图=日常声可捕捉','给声：口声(灵活不一致)/录音(一致可比对)；设备须校准','耳模取样：耳廓异常(小耳/招风耳可取，严重狭窄不能)、外耳道异常先治；第二弯曲必取；材料一比一','禁忌：化脓性中耳炎活动等'],
+   file:'钉钉直播回放_申屠思灵_言语测听与纯音测听.md'},
+  {id:'l5', no:'第⑤课', title:'听力助听器', teacher:'董燕华（浙江中医药大学）', dur:'约 2h42m',
+   points:['常规性能测试GB/T25102.7/IEC118-7：OSPL90/满档增益/频率响应/谐波失真/等效噪声/电源电流','OSPL90功率：<105小/105-114中小/115-124中/125-134大/>135特大，对应轻/中/中重/重/极重','方向性DI：超强心型6.0>强心型5.7>心型/8字4.8；CIC不能做方向性(无两开口)','程序：默认(不可删)+可添加3~4；电话程序500-400Hz后陡降','移频：频率转移/频率压缩(线性/非线性/自适应)；陡降型适用；能不移就不移','无线：电感T线圈/FM(DAI)/数字蓝牙(BLE Audio/Auracast2021)','CROS单侧全聋对侧正常(传送器侧无声、90%外挂)/BiCROS双侧均有听损'],
+   file:'钉钉直播回放_董燕华_听力助听器.md'},
+  {id:'sum', no:'汇总', title:'学习汇总（系统化主线）', teacher:'AI 整合 5 课', dur:'测听→声导抗→真耳分析→验配→康复',
+   points:['知识地图：三早→听力检测(主客观)→声导抗/测听→真耳分析→助听器验配→听力言语康复','测听：OAE/ABR/ASSR(客观)；纯音/言语/小儿行为测听(主观)','声导抗：原理/探测音/鼓室图ABC/声反射衰减','真耳分析：REUG/REAR/REOG/RECD，个性化验配验证必做','助听器验配：性能测试/方向性/程序/移频/无线/CROS','康复：聆听环境/听觉四过程/言语训练/家庭指导','高频锚点：筛查72h、婴儿期28天~1岁、VRA英文、鼓室图值、OSPL90功率、CIC不做方向性、CROS/BiCROS'],
+   file:'学习汇总.md'}
+];
+
 function getTopic(q){ return q.exp.title.replace(/^考察点：/,''); }
 function getWrong(){ return LS.get('wrong',[]); }
 function addWrong(qid){ var w=getWrong(); if(w.indexOf(qid)<0){ w.push(qid); LS.set('wrong',w); } }
@@ -617,6 +652,36 @@ function renderSimilarList(q){
 }
 
 // ========== 速记手册/知识点 ==========
+// ========== 网课要点 ==========
+function renderLecture(){
+  var html = topbar('lecture');
+  html += '<div class="card"><h2>🎬 网课要点（钉钉直播回放）</h2>'+
+    '<p style="color:var(--muted);margin:0 0 8px">5 节培训视频已转写整理。点击下方课程卡片展开核心速记；完整笔记见同目录 <b>钉钉直播回放_*.md</b> 与 <b>学习汇总.md</b>。</p></div>';
+  // 5 课先列出
+  for(var i=0;i<LECTURES.length;i++){
+    var L=LECTURES[i];
+    var isSum = (L.id==='sum');
+    var pts='';
+    for(var j=0;j<L.points.length;j++){ pts += '<li>'+L.points[j]+'</li>'; }
+    html += '<div class="lect-card" onclick="toggleLec(\''+L.id+'\')">'+
+      '<div class="lect-head"><span class="lect-no">'+L.no+'</span>'+
+        '<span class="lect-title">'+L.title+'</span>'+
+        '<span class="lect-meta">'+L.teacher+' · '+L.dur+'</span>'+
+        '<span class="lect-arw" id="arw-'+L.id+'">▸</span></div>'+
+      '<div class="lect-body" id="lec-'+L.id+'" style="display:none">'+
+        '<ul class="lect-pts">'+pts+'</ul>'+
+        '<div class="lect-file">📄 完整笔记：'+L.file+'</div>'+
+      '</div></div>';
+  }
+  app.innerHTML = html;
+}
+function toggleLec(id){
+  var b=document.getElementById('lec-'+id);
+  var a=document.getElementById('arw-'+id);
+  if(b.style.display==='none'){ b.style.display=''; a.textContent='▾'; }
+  else { b.style.display='none'; a.textContent='▸'; }
+}
+
 function renderCheat(){
   var stats=LS.get('stats',{total:0,correct:0});
   var cheat = '<div class="card"><h2>📘 考试速记要点</h2><p>'+
