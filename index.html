@@ -269,6 +269,7 @@ input[type=range]{ width:100%; accent-color:var(--accent); }
 .wrong-item .q-tag { flex-shrink:0; }
 .wrong-item .w-stem { flex:1; }
 .wrong-item .btn-mini { flex-shrink:0; }
+.wrong-item .w-level { flex-shrink:0; font-size:12px; font-weight:600; padding:2px 8px; border-radius:6px; background:var(--bg); color:var(--muted); white-space:nowrap; }
 
 /* 分类练习 */
 .topic-item { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin-bottom:10px; display:flex; align-items:center; gap:10px; }
@@ -294,7 +295,7 @@ var TOTAL = 363;
 var SINGLE_COUNT = 221;
 var MULTI_COUNT = 142;
 var SIMILAR_COUNT = 13;
-var VERSION = 'v1.22';
+var VERSION = 'v1.23';
 var app = document.getElementById('app');
 
 // ========== localStorage ==========
@@ -567,8 +568,10 @@ function answerMulti(){
 // ========== 错题本 ==========
 function renderWrong(){
   var w=getWrong();
+  // 按错误权重降序：错得越多/越近期错的排最前
+  w = w.slice().sort(function(a,b){ return getWeight(b)-getWeight(a); });
   var html = topbar('wrong')+
-    '<div class="card"><h2>错题本 <span style="color:var(--sub);font-size:13px">共 '+w.length+' 题 · 答对一题自动移出</span></h2>'+
+    '<div class="card"><h2>错题本 <span style="color:var(--sub);font-size:13px">共 '+w.length+' 题 · 答对一题自动移出 · 按错误次数由多到少排序</span></h2>'+
     '<div style="margin:12px 0">'+
       '<button class="btn btn-primary" onclick="startWrong()">全部重做（'+w.length+' 题）</button>'+
     '</div>';
@@ -577,8 +580,11 @@ function renderWrong(){
   } else {
     for(var i=0;i<w.length;i++){
       var q=BANK[w[i]];
+      var wt=getWeight(w[i]);
+      var lvl = wt>=4 ? '🔴 高频错' : (wt>=2 ? '🟠 常错' : '🟡 偶错');
       html += '<div class="wrong-item"><span class="q-tag '+(q.multi?'multi':'sel')+'">'+(q.multi?'多选':'单选')+'</span>'+
         '<span class="w-stem">'+q.s+'</span>'+
+        '<span class="w-level">'+lvl+'</span>'+
         '<button class="btn btn-ghost btn-mini" onclick="practiceOne('+w[i]+')">重做这道</button></div>';
     }
   }
