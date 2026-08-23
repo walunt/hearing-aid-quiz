@@ -294,7 +294,7 @@ var TOTAL = __TOTAL__;
 var SINGLE_COUNT = __SINGLE_COUNT__;
 var MULTI_COUNT = __MULTI_COUNT__;
 var SIMILAR_COUNT = __SIMILAR_COUNT__;
-var VERSION = 'v1.21';
+var VERSION = 'v1.22';
 var app = document.getElementById('app');
 
 // ========== localStorage ==========
@@ -321,7 +321,7 @@ function weightedPick(pool){ if(!pool.length) return null; var weights=[],tot=0;
 function render(){
   document.documentElement.setAttribute('data-theme', S.theme);
   if(S.page==='home') renderHome();
-  else if(S.page==='quiz') renderQuiz();
+  else if(S.page==='quiz'){ if(S.qid==null){ startQuiz(); return; } renderQuiz(); }
   else if(S.page==='similar') renderSimilar();
   else if(S.page==='cheat') renderCheat();
   else if(S.page==='wrong') renderWrong();

@@ -294,7 +294,7 @@ var TOTAL = 363;
 var SINGLE_COUNT = 221;
 var MULTI_COUNT = 142;
 var SIMILAR_COUNT = 13;
-var VERSION = 'v1.21';
+var VERSION = 'v1.22';
 var app = document.getElementById('app');
 
 // ========== localStorage ==========
@@ -321,7 +321,7 @@ function weightedPick(pool){ if(!pool.length) return null; var weights=[],tot=0;
 function render(){
   document.documentElement.setAttribute('data-theme', S.theme);
   if(S.page==='home') renderHome();
-  else if(S.page==='quiz') renderQuiz();
+  else if(S.page==='quiz'){ if(S.qid==null){ startQuiz(); return; } renderQuiz(); }
   else if(S.page==='similar') renderSimilar();
   else if(S.page==='cheat') renderCheat();
   else if(S.page==='wrong') renderWrong();
