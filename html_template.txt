@@ -307,7 +307,7 @@ var TOTAL = __TOTAL__;
 var SINGLE_COUNT = __SINGLE_COUNT__;
 var MULTI_COUNT = __MULTI_COUNT__;
 var SIMILAR_COUNT = __SIMILAR_COUNT__;
-var VERSION = 'v1.26';
+var VERSION = 'v1.28';
 var app = document.getElementById('app');
 
 // ========== localStorage ==========
@@ -811,14 +811,17 @@ function submitExam(auto){
   EXAM.finished = true;
   var wrong=getWrong();
   var stats=LS.get('stats',{total:0,correct:0});
+  var done=getDone();
   for(var i=0;i<EXAM.qlist.length;i++){
     var q=BANK[EXAM.qlist[i]], ans=EXAM.answers[EXAM.qlist[i]]||[];
     var ok = ans.length>0 && ans.slice().sort().join('')===q.a.split('').sort().join('');
     stats.total++; if(ok) stats.correct++;   // 考试题计入答题统计
+    if(ans.length>0 && done.indexOf(EXAM.qlist[i])<0) done.push(EXAM.qlist[i]);  // 作答过的题计入"已做过"进度
     if(!ok && wrong.indexOf(EXAM.qlist[i])<0) wrong.push(EXAM.qlist[i]);
   }
   LS.set('stats', stats);
   LS.set('wrong', wrong);
+  LS.set('done', done);
   render();
 }
 function examReport(){
@@ -888,12 +891,12 @@ function renderSetting(){
   h += '<div class="footer">本系统由核桃制作 · '+VERSION+'</div>';
   app.innerHTML = h;
 }
-function setWeakOn(v){ var w=LS.get('weak_review',{}); w.on=v; LS.set('weak_review',w); }
-function weakSetDays(d){ var w=LS.get('weak_review',{}); w.days=d; LS.set('weak_review',w); document.getElementById('rv-d').textContent=d; }
+function setWeakOn(v){ var w=LS.get('weak_review',{on:false,days:1,last:0}); w.on=v; LS.set('weak_review',w); }
+function weakSetDays(d){ var w=LS.get('weak_review',{on:false,days:1,last:0}); w.days=d; LS.set('weak_review',w); document.getElementById('rv-d').textContent=d; }
 function exportData(){
   var data={ v:VERSION, exportAt:Date.now(),
     stats:LS.get('stats',{}), wrong:LS.get('wrong',[]), done:LS.get('done',[]),
-    rounds:LS.get('rounds',0), weights:LS.get('weights',{}), weak_review:LS.get('weak_review',{}) };
+    rounds:LS.get('rounds',0), weights:LS.get('weights',{}), weak_review:LS.get('weak_review',{on:false,days:1,last:0}) };
   var blob = new Blob([JSON.stringify(data)], {type:'application/json'});
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a'); a.href=url; a.download='验配师复习进度_'+new Date().toISOString().slice(0,10)+'.json';
@@ -910,7 +913,7 @@ function importData(input){
       if(d.done) LS.set('done',d.done);
       if(d.rounds!=null) LS.set('rounds',d.rounds);
       if(d.weights) LS.set('weights',d.weights);
-      if(d.weak_review) LS.set('weak_review',d.weak_review);
+      if(d.weak_review) LS.set('weak_review', Object.assign({on:false,days:1,last:0}, d.weak_review));
       alert('导入成功！已恢复进度数据。'); render();
     }catch(err){ alert('导入失败：文件格式不正确。'); }
   };
